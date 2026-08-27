@@ -12,6 +12,10 @@
         href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
+
+    <!-- PyScript Engine (Roda o Python direto no navegador) -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 </head>
 
 <body>
@@ -55,7 +59,44 @@
                 </header>
 
                 <section class="content">
-                    <!-- Painel de Testes (Minimalista) -->
+
+                    <!-- SEÇÃO NOVA: CALCULADOR DE IVA DUAL (PYTHON EM TEMPO REAL) -->
+                    <div class="panel test-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h2>Simulador IVA Dual (Motor Python)</h2>
+                                <p>Calcule a retenção, liquidação e liberação do crédito fiscal via Split Payment.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="test-controls" style="margin-bottom: 20px;">
+                            <div style="flex: 1; min-width: 140px;">
+                                <label class="form-label">Valor da Nota (R$)</label>
+                                <input type="number" id="iva-valor-nota" class="form-input" value="10000.00" step="0.01" />
+                            </div>
+
+                            <div style="flex: 1; min-width: 120px;">
+                                <label class="form-label">Alíquota IVA (%)</label>
+                                <input type="number" id="iva-aliquota" class="form-input" value="26.5" step="0.1" />
+                            </div>
+
+                            <div style="flex: 1; min-width: 140px;">
+                                <label class="form-label">Imposto Retido/Pago (R$)</label>
+                                <input type="number" id="iva-valor-pago" class="form-input" value="1325.00" step="0.01" />
+                            </div>
+
+                            <div class="test-actions" style="align-self: flex-end;">
+                                <button class="btn btn-primary" id="btn-calcular-iva">Calcular IVA</button>
+                            </div>
+                        </div>
+
+                        <!-- CARDS DE RESULTADO DA CALCULAÇÃO -->
+                        <div class="stats-grid" id="iva-cards-container">
+                            <!-- Renderizado dinamicamente pelo script Python -->
+                        </div>
+                    </div>
+
+                    <!-- Painel de Testes (Minimalista existente) -->
                     <div class="panel test-panel">
                         <div class="panel-header">
                             <div>
@@ -72,7 +113,6 @@
                                 <option value="Chargeback">Chargeback</option>
                             </select>
 
-                            <!-- Novo: Seletor de moeda pesquisável -->
                             <input type="text" id="test-currency" list="currency-list" value="R$ (Real Brasileiro)"
                                 class="form-input" placeholder="Moeda padrão" style="max-width: 180px;" />
                             <datalist id="currency-list">
@@ -119,7 +159,6 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- As transações originais continuam aqui. O JS irá manipular este tbody -->
                                     <tr id="row-txn_8f2a1c">
                                         <td class="mono">txn_8f2a1c</td>
                                         <td>Devolução</td>
@@ -178,7 +217,6 @@
                                 <span id="webhook-feedback" class="feedback-msg"></span>
                             </div>
 
-                            <!-- Novo: Painel de Logs -->
                             <div class="webhook-logs-container">
                                 <h3>Logs de Execução</h3>
                                 <div class="webhook-logs" id="webhook-logs">
@@ -193,8 +231,142 @@
         </div>
     </div>
 
-    <!-- O script deve ir antes de fechar a tag body -->
+    <!-- SCRIPT JS PRINCIPAL (Navegação de abas e Webhooks) -->
     <script src="script.js"></script>
+
+    <!-- MOTOR PYTHON (Processamento do IVA e Injeção no HTML) -->
+    <script type="py">
+from js import document
+from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
+from typing import List
+
+TWO_PLACES = Decimal("0.01")
+
+def round_currency(value: Decimal) -> Decimal:
+    return value.quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
+
+@dataclass
+class Metadados:
+    status_codigo: str
+    status_label: str
+    cor_indicador: str
+
+@dataclass
+class MetricasFinanceiras:
+    imposto_pago: Decimal
+    falta_pagar: Decimal
+    total_a_pagar: Decimal
+    percentual_concluido: Decimal
+    credito_fiscal_liberado: Decimal
+
+@dataclass
+class CardDashboard:
+    id: str
+    titulo: str
+    valor: str
+    subtexto: str
+
+@dataclass
+class PagamentoInput:
+    valor_imposto_retido: Decimal
+
+@dataclass
+class RelatorioIvaResponse:
+    metadados: Metadados
+    metricas_financeiras: MetricasFinanceiras
+    cards_dashboard: List[CardDashboard]
+
+class CalculadorRelatorioIVA:
+    def processar_relatorio_iva(
+        self,
+        valor_total_nota: Decimal,
+        aliquota_iva: Decimal,
+        pagamentos_realizados: List[PagamentoInput],
+    ) -> RelatorioIvaResponse:
+
+        imposto_devido_total = round_currency((valor_total_nota * aliquota_iva) / Decimal("100"))
+        imposto_pago = round_currency(sum((p.valor_imposto_retido for p in pagamentos_realizados), Decimal("0")))
+        imposto_restante = max(Decimal("0.00"), imposto_devido_total - imposto_pago)
+
+        percentual_pago = Decimal("0.00")
+        if imposto_devido_total > Decimal("0"):
+            percentual_pago = round_currency((imposto_pago / imposto_devido_total) * Decimal("100"))
+
+        if imposto_pago >= imposto_devido_total and imposto_devido_total > Decimal("0"):
+            status_codigo = "PAGO_INTEGRAL"
+            status_label = "Quitado"
+            cor_ui = "green"
+            percentual_pago = Decimal("100.00")
+        elif imposto_pago > Decimal("0"):
+            status_codigo = "PAGO_PARCIAL"
+            status_label = "Parcialmente Pago"
+            cor_ui = "yellow"
+        else:
+            status_codigo = "NAO_PAGO"
+            status_label = "Pendente de Pagamento"
+            cor_ui = "red"
+            percentual_pago = Decimal("0.00")
+
+        metadados = Metadados(status_codigo=status_codigo, status_label=status_label, cor_indicador=cor_ui)
+        metricas = MetricasFinanceiras(
+            imposto_pago=imposto_pago,
+            falta_pagar=imposto_restante,
+            total_a_pagar=imposto_devido_total,
+            percentual_concluido=percentual_pago,
+            credito_fiscal_liberado=imposto_pago
+        )
+
+        cards = []
+        cards.append(CardDashboard("card_status_imposto", "Status da Liquidação", status_label, f"{percentual_pago}% do IVA recolhido"))
+        cards.append(CardDashboard("card_valor_pago", "Foi pago até agora", f"R$ {imposto_pago:.2f}", "Crédito liberado para estorno"))
+
+        tem_pagamento_parcial = imposto_pago > Decimal("0")
+        titulo_pendencia = "Quanto falta pagar?" if tem_pagamento_parcial else "Total a pagar"
+        valor_pendencia = imposto_restante if tem_pagamento_parcial else imposto_devido_total
+        subtexto_pendencia = "Requer liquidação via Split Payment" if status_codigo != "PAGO_INTEGRAL" else "Sem pendências"
+
+        cards.append(CardDashboard("card_pendencia", titulo_pendencia, f"R$ {valor_pendencia:.2f}", subtexto_pendencia))
+
+        return RelatorioIvaResponse(metadados, metricas, cards)
+
+
+def executar_calculo_iva(event=None):
+    try:
+        raw_nota = document.getElementById("iva-valor-nota").value.replace(",", ".") or "0"
+        raw_aliq = document.getElementById("iva-aliquota").value.replace(",", ".") or "0"
+        raw_pago = document.getElementById("iva-valor-pago").value.replace(",", ".") or "0"
+
+        v_nota = Decimal(raw_nota)
+        v_aliq = Decimal(raw_aliq)
+        v_pago = Decimal(raw_pago)
+
+        calculador = CalculadorRelatorioIVA()
+        resposta = calculador.processar_relatorio_iva(v_nota, v_aliq, [PagamentoInput(v_pago)])
+
+        container = document.getElementById("iva-cards-container")
+        container.innerHTML = ""
+
+        for card in resposta.cards_dashboard:
+            card_html = f'''
+            <div class="stat-card">
+                <p class="stat-label">{card.titulo}</p>
+                <p class="stat-value">{card.valor}</p>
+                <p class="stat-delta">{card.subtexto}</p>
+            </div>
+            '''
+            container.innerHTML += card_html
+
+    except Exception as e:
+        print(f"Erro ao calcular IVA: {e}")
+
+btn = document.getElementById("btn-calcular-iva")
+if btn:
+    btn.onclick = executar_calculo_iva
+
+# Executa o cálculo automático ao carregar
+executar_calculo_iva()
+    </script>
 </body>
 
 </html>

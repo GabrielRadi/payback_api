@@ -41,6 +41,7 @@ body {
   color: var(--ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 a { color: inherit; }
@@ -233,7 +234,7 @@ button {
 /* Stat cards */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
@@ -259,10 +260,11 @@ button {
 .stat-value {
   margin: 0 0 8px;
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--navy);
-  line-height: 1;
+  line-height: 1.1;
+  word-break: break-word;
 }
 
 .stat-unit {
@@ -276,6 +278,7 @@ button {
   margin: 0;
   font-size: 12px;
   font-weight: 500;
+  color: var(--navy-soft);
 }
 
 .stat-delta--up { color: var(--success); }
@@ -340,12 +343,13 @@ button {
 /* Table */
 .table-scroll {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .events-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 720px;
+  min-width: 650px;
 }
 
 .events-table th {
@@ -355,14 +359,14 @@ button {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--muted);
-  padding: 10px 24px;
+  padding: 10px 20px;
   border-top: 1px solid var(--ice);
   border-bottom: 1px solid var(--ice);
   background: var(--ice-tint);
 }
 
 .events-table td {
-  padding: 16px 24px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--ice-tint);
   font-size: 13.5px;
   vertical-align: middle;
@@ -415,13 +419,11 @@ button {
   color: var(--danger);
 }
 
-/* ---------------------------------------------------------------------
-   Signature element: trilha de conciliação
---------------------------------------------------------------------- */
+/* Trail */
 .trail {
   display: inline-flex;
   align-items: center;
-  min-width: 132px;
+  min-width: 120px;
 }
 
 .trail-node {
@@ -432,16 +434,12 @@ button {
   flex-shrink: 0;
 }
 
-.trail-node.is-done {
-  background: var(--navy);
-}
-
+.trail-node.is-done { background: var(--navy); }
 .trail-node.is-current {
   background: var(--gold);
   box-shadow: 0 0 0 4px var(--gold-tint);
   animation: pulse 1.8s ease-in-out infinite;
 }
-
 .trail-node.is-alert {
   background: var(--danger);
   box-shadow: 0 0 0 4px var(--danger-tint);
@@ -454,80 +452,14 @@ button {
   margin: 0 3px;
 }
 
-.trail-line.is-done {
-  background: var(--navy);
-}
+.trail-line.is-done { background: var(--navy); }
 
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 4px var(--gold-tint); }
   50% { box-shadow: 0 0 0 7px var(--gold-tint); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .trail-node.is-current {
-    animation: none;
-  }
-  .nav-link,
-  .btn,
-  .chip {
-    transition: none;
-  }
-}
-
-/* ---------------------------------------------------------------------
-   Responsivel
---------------------------------------------------------------------- */
-@media (max-width: 1080px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 860px) {
-  .app {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    flex-direction: row;
-    align-items: center;
-    padding: 14px 18px;
-    overflow-x: auto;
-  }
-
-  .brand { padding: 0 16px 0 0; }
-
-  .nav {
-    flex-direction: row;
-    gap: 4px;
-  }
-
-  .nav-link span:not(.nav-icon):not(.nav-badge) {
-    display: none;
-  }
-
-  .sidebar-foot { display: none; }
-
-  .topbar {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 24px 20px 12px;
-  }
-
-  .content {
-    padding: 4px 20px 32px;
-  }
-}
-
-@media (max-width: 560px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ---------------------------------------------------------------------
-   Views (Tabs)
---------------------------------------------------------------------- */
+/* Views (Tabs) */
 .view-section {
   display: none;
   flex-direction: column;
@@ -538,9 +470,7 @@ button {
   display: flex;
 }
 
-/* ---------------------------------------------------------------------
-   Forms & Inputs
---------------------------------------------------------------------- */
+/* Forms & Inputs */
 .form-group {
   margin-bottom: 16px;
 }
@@ -576,9 +506,7 @@ textarea.form-input {
   min-height: 80px;
 }
 
-/* ---------------------------------------------------------------------
-   Webhooks & Test Panels
---------------------------------------------------------------------- */
+/* Webhooks */
 .webhook-container {
   display: flex;
   flex-direction: column;
@@ -634,4 +562,109 @@ textarea.form-input {
 .test-actions {
   display: flex;
   gap: 8px;
+}
+
+/* ---------------------------------------------------------------------
+   Ajustes de Responsividade para Celulares (QR Code Access)
+--------------------------------------------------------------------- */
+@media (max-width: 1080px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    flex-direction: row;
+    align-items: center;
+    padding: 14px 18px;
+    overflow-x: auto;
+  }
+
+  .brand { padding: 0 16px 0 0; }
+
+  .nav {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .sidebar-foot { display: none; }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 20px 12px;
+  }
+
+  .content {
+    padding: 4px 16px 32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar-title h1 {
+    font-size: 22px;
+  }
+
+  .topbar-actions {
+    width: 100%;
+  }
+
+  .topbar-actions .btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  /* Formatação vertical em pilha nos formulários para fácil toque no celular */
+  .test-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .test-controls > div,
+  .test-controls .form-input,
+  .test-controls select {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .test-actions {
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .test-actions .btn {
+    flex: 1;
+    padding: 12px;
+  }
+
+  /* Previne zoom automático do iPhone ao focar em inputs */
+  .form-input {
+    font-size: 16px;
+    padding: 12px;
+  }
+
+  /* Cards de métricas empilhados no celular */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .webhook-container {
+    padding: 16px;
+  }
 }
