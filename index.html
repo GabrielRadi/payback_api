@@ -13,7 +13,7 @@
         rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
 
-    <!-- PyScript Engine (Roda o Python direto no navegador) -->
+    <!-- PyScript Engine (Executa Python nativo no navegador) -->
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 </head>
@@ -60,29 +60,39 @@
 
                 <section class="content">
 
-                    <!-- SEÇÃO NOVA: CALCULADOR DE IVA DUAL (PYTHON EM TEMPO REAL) -->
+                    <!-- PAINEL CALCULADOR DE IVA DUAL COM UPLOAD -->
                     <div class="panel test-panel">
                         <div class="panel-header">
                             <div>
                                 <h2>Simulador IVA Dual (Motor Python)</h2>
-                                <p>Calcule a retenção, liquidação e liberação do crédito fiscal via Split Payment.</p>
+                                <p>Faça upload do XML/PDF da Nota Fiscal para processamento automático do Split Payment.</p>
                             </div>
                         </div>
                         
+                        <!-- DROPZONE DE UPLOAD DA NOTA FISCAL -->
+                        <div class="upload-box" style="border: 2px dashed var(--ice); border-radius: var(--radius-md); padding: 20px; text-align: center; margin-bottom: 20px; background: var(--ice-tint);">
+                            <label for="iva-file-upload" style="cursor: pointer; display: block;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
+                                <p style="margin: 0 0 4px; font-weight: 600; color: var(--navy);">Clique para enviar a Nota Fiscal (XML ou PDF)</p>
+                                <p style="margin: 0; font-size: 12px; color: var(--muted);" id="upload-status-text">Ou selecione um arquivo de teste do seu dispositivo</p>
+                            </label>
+                            <input type="file" id="iva-file-upload" accept=".xml,.pdf" style="display: none;" />
+                        </div>
+
                         <div class="test-controls" style="margin-bottom: 20px;">
                             <div style="flex: 1; min-width: 140px;">
                                 <label class="form-label">Valor da Nota (R$)</label>
-                                <input type="number" id="iva-valor-nota" class="form-input" value="10000.00" step="0.01" />
+                                <input type="text" id="iva-valor-nota" class="form-input" value="10.000,00" />
                             </div>
 
                             <div style="flex: 1; min-width: 120px;">
                                 <label class="form-label">Alíquota IVA (%)</label>
-                                <input type="number" id="iva-aliquota" class="form-input" value="26.5" step="0.1" />
+                                <input type="text" id="iva-aliquota" class="form-input" value="26,5" />
                             </div>
 
                             <div style="flex: 1; min-width: 140px;">
                                 <label class="form-label">Imposto Retido/Pago (R$)</label>
-                                <input type="number" id="iva-valor-pago" class="form-input" value="1325.00" step="0.01" />
+                                <input type="text" id="iva-valor-pago" class="form-input" value="1.325,00" />
                             </div>
 
                             <div class="test-actions" style="align-self: flex-end;">
@@ -91,12 +101,10 @@
                         </div>
 
                         <!-- CARDS DE RESULTADO DA CALCULAÇÃO -->
-                        <div class="stats-grid" id="iva-cards-container">
-                            <!-- Renderizado dinamicamente pelo script Python -->
-                        </div>
+                        <div class="stats-grid" id="iva-cards-container"></div>
                     </div>
 
-                    <!-- Painel de Testes (Minimalista existente) -->
+                    <!-- Ambiente de Testes -->
                     <div class="panel test-panel">
                         <div class="panel-header">
                             <div>
@@ -231,15 +239,17 @@
         </div>
     </div>
 
-    <!-- SCRIPT JS PRINCIPAL (Navegação de abas e Webhooks) -->
+    <!-- SCRIPT JS PRINCIPAL -->
     <script src="script.js"></script>
 
-    <!-- MOTOR PYTHON (Processamento do IVA e Injeção no HTML) -->
+    <!-- MOTOR PYTHON (Processamento, Upload e Formatação BRL) -->
     <script type="py">
-from js import document
+from js import document, FileReader
+from pyodide.ffi import create_proxy
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
-from typing import List, Dict
+from typing import List
+import re
 
 TWO_PLACES = Decimal("0.01")
 
@@ -247,13 +257,13 @@ def round_currency(value: Decimal) -> Decimal:
     return value.quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
 
 def formatar_moeda_brl(valor: Decimal) -> str:
-    """Formata para o padrão BRL: R$ 1.000,00"""
+    """Formata valores para o padrão brasileiro: R$ 1.000,00"""
     v = round_currency(valor)
     texto = f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"R$ {texto}"
 
 def parse_input_decimal(val_str: str) -> Decimal:
-    """Converte corretamente inputs brasileiros (1.000,00) ou internacionais (10000.00)"""
+    """Trata valores numéricos digitados com vírgula ou ponto"""
     val_str = str(val_str).strip()
     if not val_str:
         return Decimal("0.00")
@@ -350,32 +360,8 @@ class CalculadorRelatorioIVA:
         return RelatorioIvaResponse(metadados, metricas, cards)
 
 
-# ---------------------------------------------------------------------
-# MOCK DE CONSULTA DE NOTA FISCAL (Simula chamada de API/SEFAZ)
-# ---------------------------------------------------------------------
-BANCO_DE_DADOS_NOTAS = {
-    "NFE-1001": {"valor_total": "10000.00", "aliquota_iva": "26.5", "valor_pago": "1325.00"},
-    "NFE-1002": {"valor_total": "50000.00", "aliquota_iva": "26.5", "valor_pago": "13250.00"},
-    "NFE-1003": {"valor_total": "2500.00", "aliquota_iva": "26.5", "valor_pago": "0.00"}
-}
-
-def consultar_e_processar_nota_por_id(id_nota: str) -> RelatorioIvaResponse:
-    """Busca a nota pelo ID/Chave e calcula tudo automaticamente"""
-    dados_nota = BANCO_DE_DADOS_NOTAS.get(id_nota.upper(), {
-        "valor_total": "0.00", "aliquota_iva": "26.5", "valor_pago": "0.00"
-    })
-    
-    v_nota = parse_input_decimal(dados_nota["valor_total"])
-    v_aliq = parse_input_decimal(dados_nota["aliquota_iva"])
-    v_pago = parse_input_decimal(dados_nota["valor_pago"])
-
-    calculador = CalculadorRelatorioIVA()
-    return calculador.processar_relatorio_iva(v_nota, v_aliq, [PagamentoInput(v_pago)])
-
-
 def executar_calculo_iva(event=None):
     try:
-        # Pega os valores da tela e trata a formatação sem quebrar casas decimais
         raw_nota = document.getElementById("iva-valor-nota").value
         raw_aliq = document.getElementById("iva-aliquota").value
         raw_pago = document.getElementById("iva-valor-pago").value
@@ -403,12 +389,51 @@ def executar_calculo_iva(event=None):
     except Exception as e:
         print(f"Erro ao calcular IVA: {e}")
 
+# --- PROCESSAMENTO DE UPLOAD DE ARQUIVOS (XML DE NOTA FISCAL) ---
+def processar_conteudo_xml(conteudo_xml: str):
+    try:
+        match_vnf = re.search(r"<vNF>(.*?)</vNF>", conteudo_xml) or re.search(r"<vServ>(.*?)</vServ>", conteudo_xml)
+        match_vpago = re.search(r"<vICMS>(.*?)</vICMS>", conteudo_xml) or re.search(r"<vPIS>(.*?)</vPIS>", conteudo_xml)
+
+        if match_vnf:
+            val = float(match_vnf.group(1))
+            document.getElementById("iva-valor-nota").value = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        if match_vpago:
+            val = float(match_vpago.group(1))
+            document.getElementById("iva-valor-pago").value = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        
+        executar_calculo_iva()
+    except Exception as e:
+        print(f"Erro ao ler arquivo XML: {e}")
+
+def on_file_loaded(event):
+    conteudo = event.target.result
+    processar_conteudo_xml(conteudo)
+
+def ao_selecionar_arquivo(event):
+    file_list = event.target.files
+    if file_list.length > 0:
+        arquivo = file_list.item(0)
+        document.getElementById("upload-status-text").innerText = f"Arquivo carregado: {arquivo.name}"
+        
+        reader = FileReader.new()
+        onload_proxy = create_proxy(on_file_loaded)
+        reader.onload = onload_proxy
+        reader.readAsText(arquivo)
+
+# Vincula eventos dos botões e uploads
 btn = document.getElementById("btn-calcular-iva")
 if btn:
     btn.onclick = executar_calculo_iva
 
+file_input = document.getElementById("iva-file-upload")
+if file_input:
+    change_proxy = create_proxy(ao_selecionar_arquivo)
+    file_input.addEventListener("change", change_proxy)
+
+# Executa cálculo inicial ao carregar
 executar_calculo_iva()
-</script>
+    </script>
 </body>
 
 </html>
