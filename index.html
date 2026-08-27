@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conciliação — Painel</title>
+    <link rel="icon" type="image/x-icon" href="imagem/iconDashboard.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <div class="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <span class="brand-name">Conciliação</span>
+            </div>
+
+            <nav class="nav" aria-label="Navegação principal">
+                <a class="nav-link is-active" href="#" data-target="view-dashboard">
+                    <span class="nav-icon" aria-hidden="true">&#9673;</span>
+                    Visão geral
+                </a>
+                <a class="nav-link" href="#" data-target="view-webhooks">
+                    <span class="nav-icon" aria-hidden="true">&#8623;</span>
+                    Webhooks
+                </a>
+            </nav>
+
+            <div class="sidebar-foot">
+                <span class="env-pill">produção</span>
+            </div>
+        </aside>
+
+        <div class="main">
+
+            <!-- ABA: VISÃO GERAL -->
+            <div id="view-dashboard" class="view-section is-active">
+                <header class="topbar">
+                    <div class="topbar-title">
+                        <h1>Visão geral</h1>
+                        <p>Split Payment &middot; conciliação fiscal-financeira</p>
+                    </div>
+                    <div class="topbar-actions">
+                        <button class="btn btn-ghost" type="button">Exportar</button>
+                        <button class="btn btn-primary" type="button">Rodar conciliação</button>
+                    </div>
+                </header>
+
+                <section class="content">
+                    <!-- Painel de Testes (Minimalista) -->
+                    <div class="panel test-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h2>Ambiente de Testes</h2>
+                                <p>Insira, altere ou remova transações para ver o dashboard refletir as mudanças.</p>
+                            </div>
+                        </div>
+                        <div class="test-controls">
+                            <input type="text" id="test-id" class="form-input" placeholder="ID (ex: txn_123)"
+                                style="max-width: 140px;" />
+                            <select id="test-event" class="form-input" style="max-width: 140px;">
+                                <option value="Devolução">Devolução</option>
+                                <option value="Cancelamento">Cancelamento</option>
+                                <option value="Chargeback">Chargeback</option>
+                            </select>
+
+                            <!-- Novo: Seletor de moeda pesquisável -->
+                            <input type="text" id="test-currency" list="currency-list" value="R$ (Real Brasileiro)"
+                                class="form-input" placeholder="Moeda padrão" style="max-width: 180px;" />
+                            <datalist id="currency-list">
+                                <option value="R$ (Real Brasileiro)"></option>
+                                <option value="$ (Dólar Americano)"></option>
+                                <option value="€ (Euro)"></option>
+                                <option value="£ (Libra Esterlina)"></option>
+                                <option value="¥ (Iene Japonês)"></option>
+                                <option value="₿ (Bitcoin)"></option>
+                            </datalist>
+
+                            <input type="text" id="test-value" class="form-input" placeholder="Valor (ex: 150 ou 150,5)"
+                                style="max-width: 180px;" />
+                            <select id="test-status" class="form-input" style="max-width: 140px;">
+                                <option value="done">Conciliado</option>
+                                <option value="pending">Aguardando</option>
+                                <option value="alert">Divergente</option>
+                            </select>
+
+                            <div class="test-actions">
+                                <button class="btn btn-primary" id="btn-save-txn">Salvar</button>
+                                <button class="btn btn-ghost" id="btn-delete-txn">Remover</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h2>Eventos recentes</h2>
+                                <p>Cada linha mostra em qual estágio da janela de 3 dias úteis a reversão está.</p>
+                            </div>
+                        </div>
+                        <div class="table-scroll">
+                            <table class="events-table" id="transactions-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Transação</th>
+                                        <th scope="col">Evento</th>
+                                        <th scope="col">Valor</th>
+                                        <th scope="col">Trilha de conciliação</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Atualizado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- As transações originais continuam aqui. O JS irá manipular este tbody -->
+                                    <tr id="row-txn_8f2a1c">
+                                        <td class="mono">txn_8f2a1c</td>
+                                        <td>Devolução</td>
+                                        <td class="mono">R$ 1.240,00</td>
+                                        <td>
+                                            <div class="trail" role="img">
+                                                <span class="trail-node is-done"></span><span
+                                                    class="trail-line is-done"></span><span
+                                                    class="trail-node is-done"></span>
+                                            </div>
+                                        </td>
+                                        <td><span class="status status--done">Conciliado</span></td>
+                                        <td class="mono muted">agora</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ABA: WEBHOOKS -->
+            <div id="view-webhooks" class="view-section">
+                <header class="topbar">
+                    <div class="topbar-title">
+                        <h1>Webhooks</h1>
+                        <p>Configure integrações de notificação em tempo real</p>
+                    </div>
+                </header>
+
+                <section class="content">
+                    <div class="panel webhook-container">
+                        <div class="webhook-help">
+                            <h2>Como configurar seu Webhook?</h2>
+                            <p>Webhooks permitem que eventos da plataforma sejam enviados automaticamente para outros
+                                aplicativos. Se estiver configurando para um servidor do Discord, por exemplo, vá nas
+                                <strong>Configurações do Servidor > Integrações > Webhooks</strong>, clique em "Criar
+                                Webhook", copie a URL gerada e cole no campo abaixo.
+                            </p>
+                        </div>
+
+                        <div class="webhook-form">
+                            <div class="form-group">
+                                <label for="webhook-url" class="form-label">URL do Webhook</label>
+                                <input type="url" id="webhook-url" class="form-input" placeholder="https://..." />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="webhook-msg" class="form-label">Mensagem de Teste</label>
+                                <textarea id="webhook-msg" class="form-input" rows="3"
+                                    placeholder="Digite uma mensagem personalizada para testar a conexão..."></textarea>
+                            </div>
+
+                            <div class="webhook-actions">
+                                <button id="btn-test-webhook" class="btn btn-primary">Enviar Teste</button>
+                                <span id="webhook-feedback" class="feedback-msg"></span>
+                            </div>
+
+                            <!-- Novo: Painel de Logs -->
+                            <div class="webhook-logs-container">
+                                <h3>Logs de Execução</h3>
+                                <div class="webhook-logs" id="webhook-logs">
+                                    <div class="log-entry text-muted">Nenhuma requisição feita ainda.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- O script deve ir antes de fechar a tag body -->
+    <script src="script.js"></script>
+</body>
+
+</html>
