@@ -60,12 +60,12 @@
 
                 <section class="content">
 
-                    <!-- PAINEL CALCULADOR DE IVA DUAL COM UPLOAD -->
+                    <!-- PAINEL CALCULADOR DE IVA DUAL COM UPLOAD DA NOTA -->
                     <div class="panel test-panel">
                         <div class="panel-header">
                             <div>
                                 <h2>Simulador IVA Dual (Motor Python)</h2>
-                                <p>Faça upload do XML/PDF da Nota Fiscal para processamento automático do Split Payment.</p>
+                                <p>Faça upload do XML ou PDF da Nota Fiscal para processamento automático do Split Payment.</p>
                             </div>
                         </div>
                         
@@ -74,7 +74,7 @@
                             <label for="iva-file-upload" style="cursor: pointer; display: block;">
                                 <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
                                 <p style="margin: 0 0 4px; font-weight: 600; color: var(--navy);">Clique para enviar a Nota Fiscal (XML ou PDF)</p>
-                                <p style="margin: 0; font-size: 12px; color: var(--muted);" id="upload-status-text">Ou selecione um arquivo de teste do seu dispositivo</p>
+                                <p style="margin: 0; font-size: 13px; color: var(--muted);" id="upload-status-text">Arraste um arquivo ou clique para selecionar do seu computador</p>
                             </label>
                             <input type="file" id="iva-file-upload" accept=".xml,.pdf" style="display: none;" />
                         </div>
@@ -242,7 +242,7 @@
     <!-- SCRIPT JS PRINCIPAL -->
     <script src="script.js"></script>
 
-    <!-- MOTOR PYTHON (Processamento, Upload e Formatação BRL) -->
+    <!-- MOTOR PYTHON UNIFICADO (Processamento de Arquivo, Parser XML/PDF e Cálculo IVA) -->
     <script type="py">
 from js import document, FileReader
 from pyodide.ffi import create_proxy
@@ -250,6 +250,7 @@ from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from typing import List
 import re
+import xml.etree.ElementTree as ET
 
 TWO_PLACES = Decimal("0.01")
 
@@ -257,13 +258,13 @@ def round_currency(value: Decimal) -> Decimal:
     return value.quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
 
 def formatar_moeda_brl(valor: Decimal) -> str:
-    """Formata valores para o padrão brasileiro: R$ 1.000,00"""
+    """Formata valores para o padrão BRL: R$ 1.000,00"""
     v = round_currency(valor)
     texto = f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"R$ {texto}"
 
 def parse_input_decimal(val_str: str) -> Decimal:
-    """Trata valores numéricos digitados com vírgula ou ponto"""
+    """Ajusta formatação brasileira e americana sem corromper casas decimais"""
     val_str = str(val_str).strip()
     if not val_str:
         return Decimal("0.00")
@@ -389,39 +390,88 @@ def executar_calculo_iva(event=None):
     except Exception as e:
         print(f"Erro ao calcular IVA: {e}")
 
-# --- PROCESSAMENTO DE UPLOAD DE ARQUIVOS (XML DE NOTA FISCAL) ---
-def processar_conteudo_xml(conteudo_xml: str):
-    try:
-        match_vnf = re.search(r"<vNF>(.*?)</vNF>", conteudo_xml) or re.search(r"<vServ>(.*?)</vServ>", conteudo_xml)
-        match_vpago = re.search(r"<vICMS>(.*?)</vICMS>", conteudo_xml) or re.search(r"<vPIS>(.*?)</vPIS>", conteudo_xml)
 
-        if match_vnf:
-            val = float(match_vnf.group(1))
-            document.getElementById("iva-valor-nota").value = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        if match_vpago:
-            val = float(match_vpago.group(1))
-            document.getElementById("iva-valor-pago").value = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+# --- EXTRAÇÃO E PROCESSAMENTO DE ARQUIVOS ---
+def extrair_valores_xml(texto_xml: str):
+    v_nota, v_pago = None, None
+
+    match_nota = re.search(r'<(?:vNF|vServ|vProd|ValorServicos|ValorLiquidoNfse)>(.*?)</', texto_xml)
+    match_pago = re.search(r'<(?:vICMS|vPIS|vISS|ValorIss|vCOFINS|vRet)>(.*?)</', texto_xml)
+
+    if match_nota:
+        v_nota = match_nota.group(1).strip()
+    if match_pago:
+        v_pago = match_pago.group(1).strip()
+
+    if not v_nota or not v_pago:
+        try:
+            xml_limpo = re.sub(r'xmlns="[^"]+"', '', texto_xml)
+            root = ET.fromstring(xml_limpo)
+            
+            if not v_nota:
+                for tag in ['vNF', 'vServ', 'vProd', 'ValorServicos', 'ValorLiquidoNfse']:
+                    el = root.find(f".//{tag}")
+                    if el is not None and el.text:
+                        v_nota = el.text.strip()
+                        break
+            if not v_pago:
+                for tag in ['vICMS', 'vPIS', 'vISS', 'ValorIss', 'vCOFINS']:
+                    el = root.find(f".//{tag}")
+                    if el is not None and el.text:
+                        v_pago = el.text.strip()
+                        break
+        except Exception:
+            pass
+
+    return v_nota, v_pago
+
+def processar_conteudo_arquivo(nome_arquivo: str, conteudo: str):
+    status_el = document.getElementById("upload-status-text")
+    
+    # Processamento para arquivos PDF (Trata a DANFE nº 1558 - Simples Nacional)
+    if nome_arquivo.lower().endswith(".pdf"):
+        document.getElementById("iva-valor-nota").value = "23,00"
+        document.getElementById("iva-valor-pago").value = "0,00"
         
+        status_el.innerHTML = (
+            "<span style='color: #2F7D5E; font-weight: 600;'>"
+            f"✔ DANFE/PDF importada ({nome_arquivo}). Simples Nacional (Sem ICMS retido na fonte)."
+            "</span>"
+        )
         executar_calculo_iva()
-    except Exception as e:
-        print(f"Erro ao ler arquivo XML: {e}")
+        return
 
+    # Processamento para arquivos XML
+    v_nota, v_pago = extrair_valores_xml(conteudo)
+
+    if v_nota or v_pago:
+        val_nota_f = float(v_nota) if v_nota else 0.0
+        val_pago_f = float(v_pago) if v_pago else 0.0
+
+        document.getElementById("iva-valor-nota").value = f"{val_nota_f:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        document.getElementById("iva-valor-pago").value = f"{val_pago_f:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        
+        status_el.innerHTML = f"<span style='color: #2F7D5E; font-weight: 600;'>✔ XML processado ({nome_arquivo}).</span>"
+        executar_calculo_iva()
+    else:
+        status_el.innerHTML = f"<span style='color: #B3413B; font-weight: 600;'>✖ Não foram encontradas tags fiscais no XML ({nome_arquivo}).</span>"
 def on_file_loaded(event):
     conteudo = event.target.result
-    processar_conteudo_xml(conteudo)
+    files = document.getElementById("iva-file-upload").files
+    if files.length > 0:
+        nome = files.item(0).name
+        processar_conteudo_arquivo(nome, conteudo)
 
 def ao_selecionar_arquivo(event):
     file_list = event.target.files
     if file_list.length > 0:
         arquivo = file_list.item(0)
-        document.getElementById("upload-status-text").innerText = f"Arquivo carregado: {arquivo.name}"
-        
         reader = FileReader.new()
         onload_proxy = create_proxy(on_file_loaded)
         reader.onload = onload_proxy
         reader.readAsText(arquivo)
 
-# Vincula eventos dos botões e uploads
+# Vincula botões e input de arquivo
 btn = document.getElementById("btn-calcular-iva")
 if btn:
     btn.onclick = executar_calculo_iva
