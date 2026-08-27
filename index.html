@@ -68,11 +68,12 @@
                                 <p>Calcule a retenção, liquidação e liberação do crédito fiscal via Split Payment.</p>
                             </div>
                         </div>
-                        
+
                         <div class="test-controls" style="margin-bottom: 20px;">
                             <div style="flex: 1; min-width: 140px;">
                                 <label class="form-label">Valor da Nota (R$)</label>
-                                <input type="number" id="iva-valor-nota" class="form-input" value="10000.00" step="0.01" />
+                                <input type="number" id="iva-valor-nota" class="form-input" value="10000.00"
+                                    step="0.01" />
                             </div>
 
                             <div style="flex: 1; min-width: 120px;">
@@ -82,7 +83,8 @@
 
                             <div style="flex: 1; min-width: 140px;">
                                 <label class="form-label">Imposto Retido/Pago (R$)</label>
-                                <input type="number" id="iva-valor-pago" class="form-input" value="1325.00" step="0.01" />
+                                <input type="number" id="iva-valor-pago" class="form-input" value="1325.00"
+                                    step="0.01" />
                             </div>
 
                             <div class="test-actions" style="align-self: flex-end;">
@@ -193,8 +195,11 @@
                     <div class="panel webhook-container">
                         <div class="webhook-help">
                             <h2>Como configurar e testar seu Webhook?</h2>
-                            <p>Insira o URL do seu endpoint e uma mensagem de teste. Clique em "Enviar Teste" para verificar a conexão e receber logs detalhados da requisição.
-                                você pode usar serviços como <a href="https://webhook.site/" target="_blank">Webhook.site</a> para criar endpoints temporários e visualizar as requisições enviadas.
+                            <p>Insira o URL do seu endpoint e uma mensagem de teste. Clique em "Enviar Teste" para
+                                verificar a conexão e receber logs detalhados da requisição.
+                                você pode usar serviços como <a href="https://webhook.site/"
+                                    target="_blank">Webhook.site</a> para criar endpoints temporários e visualizar as
+                                requisições enviadas.
                             </p>
                         </div>
 
@@ -361,6 +366,65 @@ def executar_calculo_iva(event=None):
 btn = document.getElementById("btn-calcular-iva")
 if btn:
     btn.onclick = executar_calculo_iva
+
+    # Adicione esta função antes do executar_calculo_iva
+def parse_currency(raw_val: str) -> Decimal:
+    if not raw_val: return Decimal("0")
+    
+    # Mantém apenas números, pontos e vírgulas
+    val = "".join(c for c in raw_val if c.isdigit() or c in ".,")
+    if not val: return Decimal("0")
+
+    last_dot = val.rfind('.')
+    last_comma = val.rfind(',')
+
+    if last_dot > -1 and last_comma > -1:
+        if last_dot > last_comma:
+            val = val.replace(',', '') # Formato US: 1,000.50 -> 1000.50
+        else:
+            val = val.replace('.', '').replace(',', '.') # Formato BR: 1.000,50 -> 1000.50
+    elif last_comma > -1:
+        val = val.replace(',', '.') # Formato BR: 100,50 -> 100.50
+    elif last_dot > -1:
+        parts = val.split('.')
+        # Se tem 3 zeros após o ponto, assume que é milhar (ex: 1.000)
+        if len(parts) > 2 or len(parts[-1]) == 3:
+            val = val.replace('.', '')
+            
+    try:
+        return Decimal(val)
+    except:
+        return Decimal("0")
+
+def executar_calculo_iva(event=None):
+    try:
+        raw_nota = document.getElementById("iva-valor-nota").value
+        raw_aliq = document.getElementById("iva-aliquota").value
+        raw_pago = document.getElementById("iva-valor-pago").value
+
+        # Usando o novo parser inteligente
+        v_nota = parse_currency(raw_nota)
+        v_aliq = parse_currency(raw_aliq)
+        v_pago = parse_currency(raw_pago)
+
+        calculador = CalculadorRelatorioIVA()
+        resposta = calculador.processar_relatorio_iva(v_nota, v_aliq, [PagamentoInput(v_pago)])
+
+        container = document.getElementById("iva-cards-container")
+        container.innerHTML = ""
+
+        for card in resposta.cards_dashboard:
+            card_html = f'''
+            <div class="stat-card">
+                <p class="stat-label">{card.titulo}</p>
+                <p class="stat-value">{card.valor}</p>
+                <p class="stat-delta">{card.subtexto}</p>
+            </div>
+            '''
+            container.innerHTML += card_html
+
+    except Exception as e:
+        print(f"Erro ao calcular IVA: {e}")
 
 # Executa o cálculo automático ao carregar
 executar_calculo_iva()
