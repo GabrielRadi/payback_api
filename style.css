@@ -1,32 +1,46 @@
 /* ---------------------------------------------------------------------
    Tokens
 --------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------
+   Tokens (Tema SynTax Lab Dark)
+--------------------------------------------------------------------- */
 :root {
-  --bg: #F7F9FC;
-  --surface: #FFFFFF;
-  --ink: #1B2140;
-  --muted: #6B7280;
+  /* Fundos: Azul noturno profundo inspirado no fundo do slide */
+  --bg: #090C22; 
+  --surface: #14183E; /* Fundo dos cards e painéis (um pouco mais claro) */
 
-  --navy: #1E2761;
-  --navy-soft: #2A3572;
-  --ice: #CADCFC;
-  --ice-tint: #EEF3FD;
+  /* Textos */
+  --ink: #FFFFFF; /* Texto branco puro para contraste alto */
+  --muted: #8E99CC; /* Texto secundário (cinza azulado) */
 
-  --gold: #C9A227;
-  --gold-tint: #FBF3DC;
+  /* Cor Principal: Roxo vibrante (inspirado nas bolhas PIS/COFINS) */
+  --navy: #8B43F2; /* Usado na barra lateral e botões principais */
+  --navy-soft: #A262F5; /* Hover dos botões */
 
-  --success: #2F7D5E;
-  --success-tint: #E4F3EC;
+  /* Linhas, bordas e fundos secundários */
+  --ice: #28316B; /* Bordas das tabelas e inputs */
+  --ice-tint: #1A2152; /* Cor de hover nas linhas da tabela e cabeçalhos */
 
-  --danger: #B3413B;
-  --danger-tint: #FBEAE8;
+  /* Destaques e Alertas Pendentes: Ciano do logo e da fatia "IBS" */
+  --gold: #00D2FF; 
+  --gold-tint: rgba(0, 210, 255, 0.15); /* Fundo transparente para badges */
 
+  /* Cores de Status (Ajustadas com brilho para leitura no fundo escuro) */
+  --success: #10B981; /* Verde esmeralda */
+  --success-tint: rgba(16, 185, 129, 0.15);
+
+  --danger: #F43F5E; /* Vermelho rose */
+  --danger-tint: rgba(244, 63, 94, 0.15);
+
+  /* Medidas (Mantidas as originais) */
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 18px;
 
-  --shadow-card: 0 1px 2px rgba(30, 39, 97, 0.06), 0 8px 24px rgba(30, 39, 97, 0.06);
+  /* Sombras (Adaptadas para serem mais profundas no Dark Mode) */
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.4);
 
+  /* Tipografia (Mantidas as originais) */
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "Courier New", monospace;
