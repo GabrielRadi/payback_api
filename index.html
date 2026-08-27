@@ -22,15 +22,15 @@
 
     <div class="app">
         <aside class="sidebar">
-            <div class="brand">
-                <span class="brand-mark" aria-hidden="true"></span>
-                <span class="brand-name">Conciliação</span>
-            </div>
-
+            <!-- SUBSTITUA A SUA <nav> POR ESTA: -->
             <nav class="nav" aria-label="Navegação principal">
                 <a class="nav-link is-active" href="#" data-target="view-dashboard">
                     <span class="nav-icon" aria-hidden="true">&#9673;</span>
                     Visão geral
+                </a>
+                <a class="nav-link" href="#" data-target="view-validation">
+                    <span class="nav-icon" aria-hidden="true">&#9635;</span>
+                    Validação NF
                 </a>
                 <a class="nav-link" href="#" data-target="view-webhooks">
                     <span class="nav-icon" aria-hidden="true">&#8623;</span>
@@ -177,6 +177,84 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ABA: VALIDAÇÃO DE NOTAS -->
+            <div id="view-validation" class="view-section">
+                <header class="topbar">
+                    <div class="topbar-title">
+                        <h1>Validação de Notas</h1>
+                        <p>Leitura de código de barras para liberação de crédito fiscal</p>
+                    </div>
+                </header>
+
+                <section class="content">
+                    <div class="panel test-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h2>Scanner de Código de Barras (NF-e)</h2>
+                                <p>Posicione o leitor ou insira manualmente a chave de 44 dígitos da nota.</p>
+                            </div>
+                        </div>
+
+                        <div class="test-controls"
+                            style="flex-direction: column; align-items: stretch; margin-top: 20px;">
+                            <div style="display: flex; gap: 12px; width: 100%;">
+                                <input type="text" id="nf-barcode" class="form-input mono"
+                                    placeholder="Ex: 3523 1012 3456 7800 0199 5500 1000 0000 0110 0000 0015"
+                                    style="flex: 1; font-size: 16px; letter-spacing: 1px;" maxlength="54" />
+                                <button class="btn btn-primary" id="btn-validar-nf" style="white-space: nowrap;">Ler
+                                    Nota</button>
+                            </div>
+
+                            <!-- Botões para simular cenários facilmente -->
+                            <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                                <span
+                                    style="font-size: 12px; color: var(--muted); margin-right: 8px; display: flex; align-items: center;">Cenários
+                                    de Teste:</span>
+                                <button class="chip" type="button" id="mock-split">Compra + Paga + Split</button>
+                                <button class="chip" type="button" id="mock-antigo">Compra + Paga + Antigo</button>
+                                <button class="chip" type="button" id="mock-pendente">Compra + Pendente</button>
+                                <button class="chip" type="button" id="mock-venda">Nota de Venda</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Painel de Resultado da Validação -->
+                    <div class="panel" id="nf-result-panel" style="display: none; margin-top: 24px;">
+                        <div class="panel-header" style="border-bottom: 1px solid var(--ice); padding-bottom: 20px;">
+                            <div>
+                                <h2 id="nf-result-title">Resultado da Análise</h2>
+                            </div>
+                            <div class="panel-filters">
+                                <span id="nf-status-badge" class="status"></span>
+                            </div>
+                        </div>
+
+                        <div style="padding: 24px;">
+                            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                                <article class="stat-card">
+                                    <p class="stat-label">Tipo de Operação</p>
+                                    <p class="stat-value" id="res-tipo" style="font-size: 20px;">-</p>
+                                </article>
+                                <article class="stat-card">
+                                    <p class="stat-label">Método de Pagamento</p>
+                                    <p class="stat-value" id="res-metodo" style="font-size: 20px;">-</p>
+                                </article>
+                                <article class="stat-card" id="res-card-credito">
+                                    <p class="stat-label">Crédito Liberado</p>
+                                    <p class="stat-value" id="res-credito"
+                                        style="font-size: 24px; color: var(--success);">R$ 0,00</p>
+                                </article>
+                            </div>
+
+                            <div
+                                style="margin-top: 24px; padding: 16px; background: var(--ice-tint); border-radius: var(--radius-sm); border-left: 4px solid var(--navy);">
+                                <p style="margin: 0; font-size: 14px; font-weight: 500;" id="res-mensagem"></p>
+                            </div>
                         </div>
                     </div>
                 </section>

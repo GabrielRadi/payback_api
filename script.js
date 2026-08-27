@@ -209,4 +209,90 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('ID não encontrado na tabela.');
         }
     });
+
+    // 4. Lógica do Leitor de Código de Barras (NF-e)
+    const btnValidarNf = document.getElementById('btn-validar-nf');
+    const nfBarcode = document.getElementById('nf-barcode');
+    const nfResultPanel = document.getElementById('nf-result-panel');
+
+    // Banco de dados simulado vinculando códigos de barras a status fiscais reais
+    const bancoDeNotasMock = {
+        '3523 1012 3456 7800 0199 5500 1000 0000 0110 0000 0001': { tipo: 'COMPRA', paga: true, metodo: 'SPLIT', valorCredito: 1540.50 },
+        '3523 1012 3456 7800 0199 5500 1000 0000 0110 0000 0002': { tipo: 'COMPRA', paga: true, metodo: 'ANTIGO', valorCredito: 2300.00 },
+        '3523 1012 3456 7800 0199 5500 1000 0000 0110 0000 0003': { tipo: 'COMPRA', paga: false, metodo: 'SPLIT', valorCredito: 450.00 },
+        '3523 1012 3456 7800 0199 5500 1000 0000 0110 0000 0004': { tipo: 'VENDA', paga: true, metodo: 'SPLIT', valorCredito: 890.00 }
+    };
+
+    // Botões de injeção de teste
+    document.getElementById('mock-split').addEventListener('click', () => nfBarcode.value = '3523 1012 3456 7800 0199 5500 1000 0000 0110 0000 0001');
+    document.getElementById('mock-antigo').addEventListener('click', () => nfBarcode.value = '3523 1012 3456 7800 0199 5500 1000 0000 0110 0000 0002');
+    document.getElementById('mock-pendente').addEventListener('click', () => nfBarcode.value = '3523 1012 3456 7800 0199 5500 1000 0000 0110 0000 0003');
+    document.getElementById('mock-venda').addEventListener('click', () => nfBarcode.value = '3523 1012 3456 7800 0199 5500 1000 0000 0110 0000 0004');
+
+    btnValidarNf.addEventListener('click', () => {
+        const codigo = nfBarcode.value.trim();
+        if (!codigo) return alert('Insira um código de barras válido.');
+
+        nfResultPanel.style.display = 'block';
+        const dados = bancoDeNotasMock[codigo];
+
+        const elMensagem = document.getElementById('res-mensagem');
+        const elStatusBadge = document.getElementById('nf-status-badge');
+        const elCredito = document.getElementById('res-credito');
+        const cardCredito = document.getElementById('res-card-credito');
+
+        // Reset visual default
+        cardCredito.style.borderColor = 'var(--ice)';
+        elCredito.style.color = 'var(--muted)';
+
+        if (!dados) {
+            // Nota não encontrada
+            document.getElementById('res-tipo').textContent = 'Desconhecido';
+            document.getElementById('res-metodo').textContent = '-';
+            elCredito.textContent = 'R$ 0,00';
+            elStatusBadge.className = 'status status--alert';
+            elStatusBadge.textContent = 'Inválida';
+            elMensagem.innerHTML = '<strong>Erro:</strong> Chave de acesso não encontrada no banco de dados da SEFAZ.';
+            return;
+        }
+
+        // Preenche dados básicos
+        document.getElementById('res-tipo').textContent = dados.tipo;
+        document.getElementById('res-metodo').textContent = dados.metodo === 'SPLIT' ? 'Split Payment' : 'Padrão (Sem Split)';
+
+        // REGRA 1: APENAS COMPRAS
+        if (dados.tipo !== 'COMPRA') {
+            elStatusBadge.className = 'status status--alert';
+            elStatusBadge.textContent = 'Bloqueado';
+            elCredito.textContent = 'R$ 0,00';
+            elMensagem.innerHTML = '<strong>Ação Bloqueada:</strong> Apenas Notas Fiscais de COMPRA podem ser validadas para geração de crédito.';
+            return;
+        }
+
+        // REGRA 2: DEVE ESTAR PAGA
+        if (!dados.paga) {
+            elStatusBadge.className = 'status status--pending';
+            elStatusBadge.textContent = 'Pendente';
+            elCredito.textContent = 'R$ 0,00';
+            elMensagem.innerHTML = '<strong>Ação Bloqueada:</strong> Esta nota consta como não paga. A validação exige quitação prévia.';
+            return;
+        }
+
+        // REGRA 3 e 4: METODO DE PAGAMENTO (SPLIT vs ANTIGO)
+        if (dados.metodo === 'SPLIT') {
+            elStatusBadge.className = 'status status--done';
+            elStatusBadge.textContent = 'Validado';
+            cardCredito.style.borderColor = 'var(--success)';
+            elCredito.style.color = 'var(--success)';
+            elCredito.textContent = formatCurrency(dados.valorCredito.toString(), 'R$');
+
+            elMensagem.innerHTML = '<strong>Sucesso:</strong> Nota criada e paga via Split Payment. Crédito fiscal adicionado instantaneamente na conta.';
+        } else {
+            elStatusBadge.className = 'status status--alert';
+            elStatusBadge.textContent = 'Rejeitado por Precaução';
+            elCredito.textContent = 'R$ 0,00';
+
+            elMensagem.innerHTML = '<strong>Aviso de Segurança:</strong> Nota identificada como método antigo (Sem Split). <u>Nenhum crédito foi adicionado por precaução</u>.';
+        }
+    });
 });
